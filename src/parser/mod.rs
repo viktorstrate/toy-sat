@@ -1,5 +1,15 @@
 pub mod dimacs;
 
+pub struct CNFHeader {
+  pub variables: usize,
+  pub clauses: usize,
+}
+
+pub struct CNF {
+  pub header: CNFHeader,
+  pub clauses: Vec<Vec<i64>>,
+}
+
 pub struct ParseBuffer<'a> {
   chars: std::str::Chars<'a>,
   token: Option<String>,
@@ -33,7 +43,15 @@ impl ParseBuffer<'_> {
           break;
         }
         Some(c) if c != ' ' => result.push(c),
-        None => return None,
+        None => {
+          if result != "" {
+            self.token = Some(result);
+            return self.head();
+          } else {
+            self.token = None;
+            return None;
+          }
+        }
         Some(_) => {
           self.prev_char = self.chars.next();
           break;

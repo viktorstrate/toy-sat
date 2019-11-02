@@ -3,13 +3,21 @@ use std::io::prelude::*;
 use std::path::Path;
 
 mod parser;
+mod solver;
 
 fn main() {
-    let path = Path::new("test.cnf");
-    let mut file = File::open(path).expect("open file");
+    let cnf;
 
-    let mut s = String::new();
-    file.read_to_string(&mut s).expect("read content of file");
+    {
+        let path = Path::new("test.cnf");
+        let mut file = File::open(path).expect("open file");
 
-    parser::dimacs::parse(s.as_str());
+        let mut s = String::new();
+        file.read_to_string(&mut s).expect("read content of file");
+
+        cnf = parser::dimacs::parse(s.as_str());
+    }
+
+    let mut s = solver::SatSolver::new();
+    s.solve(cnf);
 }
