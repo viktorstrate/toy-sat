@@ -1,7 +1,7 @@
 use super::{CNFHeader, ParseBuffer, CNF};
 
 pub fn parse(data: &str) -> CNF {
-  println!("Parsing cnf dimacs format...");
+  // println!("Parsing cnf dimacs format...");
 
   let mut result: Vec<Vec<i64>> = vec![vec![]];
 
@@ -56,7 +56,7 @@ fn parse_body(buf: &mut ParseBuffer, header: &CNFHeader) -> Vec<Vec<i64>> {
         Some(ref string) if string.is_empty() => {}
         Some(ref string) if string != "\n" => {
           let number: i64 = string.parse().expect("Expected number");
-          println!("Number: {}", number);
+          // println!("Number: {}", number);
           line.push(number);
         }
         None => break,
@@ -69,7 +69,7 @@ fn parse_body(buf: &mut ParseBuffer, header: &CNFHeader) -> Vec<Vec<i64>> {
     }
   }
 
-  println!("Vec: {:?}", result);
+  println!("c {:?}", result);
 
   return result;
 }
@@ -108,5 +108,5 @@ fn parse_comment(buf: &mut ParseBuffer) {
       break;
     }
   }
-  println!("Comment: {}", comment);
+  // println!("Comment: {}", comment);
 }

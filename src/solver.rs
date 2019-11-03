@@ -10,10 +10,28 @@ impl SatSolver {
   }
 
   pub fn solve(&mut self, cnf: parser::CNF) -> Option<Vec<i64>> {
-    println!("Solving...");
+    println!("c Solving...");
 
     let result = self.condition_solve(&cnf, &vec![], false);
-    println!("Done: {:?}", result);
+
+    println!("c Iterations {}", self.counter);
+
+    match &result {
+      Some(solution) => {
+        println!("s SATISFIABLE");
+        println!(
+          "v {}",
+          solution
+            .into_iter()
+            .map(|x| format!("{}", x))
+            .collect::<Vec<String>>()
+            .join(" ")
+        );
+      }
+      None => {
+        println!("s UNSATISFIABLE");
+      }
+    }
 
     result
   }
@@ -24,8 +42,8 @@ impl SatSolver {
     variables: &Vec<i64>,
     proceed: bool,
   ) -> Option<Vec<i64>> {
-    if self.counter % 1 == 0 {
-      println!("Testing variables: {:?}", variables);
+    if self.counter % 1000 == 0 && self.counter > 0 {
+      println!("c Testing variables: {:?}", variables);
     }
 
     self.counter += 1;
@@ -74,13 +92,15 @@ impl SatSolver {
       if !SatSolver::abs_contains(variables, i as i64) {
         let result = self.test_new_variable(cnf, variables, i as i64);
 
-        if result.is_some() {
-          return Ok(result.unwrap());
+        if let Some(solution) = result {
+          return Ok(solution);
         }
 
-        let mut attempt = variables.to_vec();
-        attempt.push(i as i64);
-        attempts.push(attempt);
+        for fac in [1, -1].iter() {
+          let mut attempt = variables.to_vec();
+          attempt.push(i as i64 * fac);
+          attempts.push(attempt);
+        }
       }
     }
 
