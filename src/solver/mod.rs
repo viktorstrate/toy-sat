@@ -46,37 +46,43 @@ pub trait Solver {
   fn solve(&mut self) -> SolveResult;
   fn get_cnf(&self) -> &parser::CNF;
 
-  fn is_valid(&self, variables: &Vec<i64>) -> bool {
+  // Whether or not the given variables satisfies all clauses
+  fn satisfies(&self, variables: &Vec<i64>) -> bool {
     for clause in &self.get_cnf().clauses {
-      let mut valid = false;
-
-      for v in clause {
-        if variables.contains(v) {
-          valid = true;
-          break;
-        }
-      }
-
-      if !valid {
-        let mut no_match = true;
-        for v in clause {
-          if Self::abs_contains(variables, *v) {
-            no_match = false;
-            break;
-          }
-        }
-
-        if no_match {
-          valid = true;
-        }
-      }
-
-      if !valid {
+      if !Self::satisfies_clause(clause, variables) {
         return false;
       }
     }
 
     return true;
+  }
+
+  // Whether or not at least one variable satisfies the clause
+  fn satisfies_clause(clause: &Vec<i64>, variables: &Vec<i64>) -> bool {
+    let mut valid = false;
+
+    for v in clause {
+      if variables.contains(v) {
+        valid = true;
+        break;
+      }
+    }
+
+    if !valid {
+      let mut no_match = true;
+      for v in clause {
+        if Self::abs_contains(variables, *v) {
+          no_match = false;
+          break;
+        }
+      }
+
+      if no_match {
+        valid = true;
+      }
+    }
+
+    return valid;
   }
 
   fn abs_contains(vec: &Vec<i64>, num: i64) -> bool {

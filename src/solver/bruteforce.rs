@@ -38,7 +38,7 @@ impl BruteforceSolver {
 
     self.counter += 1;
 
-    if !self.is_valid(variables) {
+    if !self.satisfies(variables) {
       if !proceed {
         return SolveResult::Unknown;
       }
