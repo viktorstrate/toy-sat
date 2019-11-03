@@ -1,10 +1,12 @@
 pub mod dimacs;
 
+#[derive(Copy, Clone)]
 pub struct CNFHeader {
   pub variables: usize,
   pub clauses: usize,
 }
 
+#[derive(Clone)]
 pub struct CNF {
   pub header: CNFHeader,
   pub clauses: Vec<Vec<i64>>,

@@ -6,10 +6,11 @@ mod parser;
 mod solver;
 
 use solver::bruteforce::BruteforceSolver;
+use solver::combinational::CombinationalSolver;
 use solver::Solver;
 
 extern crate clap;
-use clap::{App, Arg, SubCommand};
+use clap::{App, Arg};
 
 fn main() {
     let matches = App::new("toy-sat")
@@ -21,6 +22,16 @@ fn main() {
                 .value_name("FILE")
                 .required(true)
                 .index(1),
+        )
+        .arg(
+            Arg::with_name("type")
+                .short("t")
+                .long("type")
+                .value_name("TYPE")
+                .possible_values(&["bruteforce", "combinational"])
+                .default_value("bruteforce")
+                .multiple(true)
+                .required(true),
         )
         .get_matches();
 
@@ -38,6 +49,15 @@ fn main() {
         cnf = parser::dimacs::parse(s.as_str());
     }
 
-    let mut s = BruteforceSolver::new(cnf);
-    s.solve();
+    let solvers = matches.values_of("type").unwrap();
+
+    for solver in solvers {
+        let solution = match solver {
+            "bruteforce" => BruteforceSolver::new(cnf.clone()).solve(),
+            "combinational" => CombinationalSolver::new(cnf.clone()).solve(),
+            s => panic!("Unknown solver {}", s),
+        };
+
+        println!("{}", solution);
+    }
 }

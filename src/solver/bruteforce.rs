@@ -1,4 +1,5 @@
 use super::parser;
+use super::SolveResult;
 use super::Solver;
 
 pub struct BruteforceSolver {
@@ -7,29 +8,12 @@ pub struct BruteforceSolver {
 }
 
 impl Solver for BruteforceSolver {
-  fn solve(&mut self) -> Option<Vec<i64>> {
-    println!("c Solving...");
+  fn solve(&mut self) -> SolveResult {
+    println!("c Solving by bruteforce");
 
     let result = self.condition_solve(&vec![], false);
 
     println!("c Iterations {}", self.counter);
-
-    match &result {
-      Some(solution) => {
-        println!("s SATISFIABLE");
-        println!(
-          "v {}",
-          solution
-            .into_iter()
-            .map(|x| format!("{}", x))
-            .collect::<Vec<String>>()
-            .join(" ")
-        );
-      }
-      None => {
-        println!("s UNSATISFIABLE");
-      }
-    }
 
     result
   }
@@ -47,20 +31,20 @@ impl BruteforceSolver {
     }
   }
 
-  fn condition_solve(&mut self, variables: &Vec<i64>, proceed: bool) -> Option<Vec<i64>> {
+  fn condition_solve(&mut self, variables: &Vec<i64>, proceed: bool) -> SolveResult {
     if self.counter % 1000 == 0 && self.counter > 0 {
       println!("c Testing variables: {:?}", variables);
     }
 
     self.counter += 1;
 
-    if !BruteforceSolver::is_valid(self.get_cnf(), variables) {
+    if !self.is_valid(variables) {
       if !proceed {
-        return None;
+        return SolveResult::Unknown;
       }
     } else if self.get_cnf().header.variables == variables.len() {
       // Found solution
-      return Some(variables.to_vec());
+      return SolveResult::Satisfiable(variables.to_vec());
     }
 
     let mut attempts = vec![variables.to_vec()];
@@ -72,7 +56,7 @@ impl BruteforceSolver {
         let mut result = self.test_all_variables(&attempt);
 
         match result {
-          Ok(result) => return Some(result),
+          Ok(result) => return SolveResult::Satisfiable(result),
           Err(ref mut att) => new_attempts.append(att),
         }
       }
@@ -84,7 +68,7 @@ impl BruteforceSolver {
       attempts = new_attempts;
     }
 
-    return None;
+    return SolveResult::Unsatisfiable;
   }
 
   fn test_all_variables(&mut self, variables: &Vec<i64>) -> Result<Vec<i64>, Vec<Vec<i64>>> {
@@ -94,7 +78,7 @@ impl BruteforceSolver {
       if !BruteforceSolver::abs_contains(variables, i as i64) {
         let result = self.test_new_variable(variables, i as i64);
 
-        if let Some(solution) = result {
+        if let SolveResult::Satisfiable(solution) = result {
           return Ok(solution);
         }
 
@@ -109,7 +93,7 @@ impl BruteforceSolver {
     return Err(attempts);
   }
 
-  fn test_new_variable(&mut self, variables: &Vec<i64>, new_variable: i64) -> Option<Vec<i64>> {
+  fn test_new_variable(&mut self, variables: &Vec<i64>, new_variable: i64) -> SolveResult {
     let mut invert = false;
     loop {
       let mut new_variables = variables.to_vec();
@@ -117,7 +101,7 @@ impl BruteforceSolver {
 
       let result = self.condition_solve(&new_variables, false);
 
-      if result.is_some() {
+      if let SolveResult::Satisfiable(_) = result {
         return result;
       }
 
@@ -128,49 +112,6 @@ impl BruteforceSolver {
       invert = !invert;
     }
 
-    return None;
-  }
-
-  fn is_valid(cnf: &parser::CNF, variables: &Vec<i64>) -> bool {
-    for clause in &cnf.clauses {
-      let mut valid = false;
-
-      for v in clause {
-        if variables.contains(v) {
-          valid = true;
-          break;
-        }
-      }
-
-      if !valid {
-        let mut no_match = true;
-        for v in clause {
-          if BruteforceSolver::abs_contains(variables, *v) {
-            no_match = false;
-            break;
-          }
-        }
-
-        if no_match {
-          valid = true;
-        }
-      }
-
-      if !valid {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  fn abs_contains(vec: &Vec<i64>, num: i64) -> bool {
-    for x in vec {
-      if x.abs() == num.abs() {
-        return true;
-      }
-    }
-
-    return false;
+    return SolveResult::Unsatisfiable;
   }
 }

@@ -3,13 +3,11 @@ use super::{CNFHeader, ParseBuffer, CNF};
 pub fn parse(data: &str) -> CNF {
   // println!("Parsing cnf dimacs format...");
 
-  let mut result: Vec<Vec<i64>> = vec![vec![]];
-
   let mut buf = ParseBuffer::new(data);
 
   let header = parse_header(&mut buf);
 
-  result = parse_body(&mut buf, &header);
+  let result = parse_body(&mut buf);
 
   CNF {
     header: header,
@@ -40,7 +38,7 @@ fn parse_header(buf: &mut ParseBuffer) -> CNFHeader {
   return header;
 }
 
-fn parse_body(buf: &mut ParseBuffer, header: &CNFHeader) -> Vec<Vec<i64>> {
+fn parse_body(buf: &mut ParseBuffer) -> Vec<Vec<i64>> {
   let mut result = vec![];
 
   loop {
@@ -69,7 +67,7 @@ fn parse_body(buf: &mut ParseBuffer, header: &CNFHeader) -> Vec<Vec<i64>> {
     }
   }
 
-  println!("c {:?}", result);
+  // println!("c {:?}", result);
 
   return result;
 }
