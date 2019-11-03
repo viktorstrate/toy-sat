@@ -5,6 +5,9 @@ use std::path::Path;
 mod parser;
 mod solver;
 
+use solver::bruteforce::BruteforceSolver;
+use solver::Solver;
+
 extern crate clap;
 use clap::{App, Arg, SubCommand};
 
@@ -35,6 +38,6 @@ fn main() {
         cnf = parser::dimacs::parse(s.as_str());
     }
 
-    let mut s = solver::SatSolver::new();
-    s.solve(cnf);
+    let mut s = BruteforceSolver::new(cnf);
+    s.solve();
 }
