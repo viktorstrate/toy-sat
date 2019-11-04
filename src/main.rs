@@ -24,12 +24,18 @@ fn main() {
                 .index(1),
         )
         .arg(
+            Arg::with_name("verbose")
+                .help("Print more to the console")
+                .short("v")
+                .long("verbose"),
+        )
+        .arg(
             Arg::with_name("type")
                 .short("t")
                 .long("type")
                 .value_name("TYPE")
                 .possible_values(&["bruteforce", "combinational"])
-                .default_value("bruteforce")
+                .default_value("combinational")
                 .multiple(true)
                 .required(true),
         )
@@ -49,12 +55,13 @@ fn main() {
         cnf = parser::dimacs::parse(s.as_str());
     }
 
+    let verbose = matches.is_present("verbose");
     let solvers = matches.values_of("type").unwrap();
 
     for solver in solvers {
         let solution = match solver {
             "bruteforce" => BruteforceSolver::new(cnf.clone()).solve(),
-            "combinational" => CombinationalSolver::new(cnf.clone()).solve(),
+            "combinational" => CombinationalSolver::new(cnf.clone(), verbose).solve(),
             s => panic!("Unknown solver {}", s),
         };
 

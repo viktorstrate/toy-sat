@@ -5,13 +5,30 @@ use super::Solver;
 pub struct CombinationalSolver {
   counter: u64,
   cnf: parser::CNF,
+  verbose: bool,
 }
 
 impl Solver for CombinationalSolver {
   fn solve(&mut self) -> SolveResult {
     println!("c Solving combinationally");
 
-    self.solve_combinaitonal(0, &vec![]).unwrap_or_default()
+    let result = self.solve_combinaitonal(0, &vec![]);
+
+    println!("c Iterations {}", self.counter);
+
+    match result {
+      Ok(solution) => match solution {
+        SolveResult::Satisfiable(s) => {
+          s.to_vec().sort();
+          SolveResult::Satisfiable(s)
+        }
+        _ => solution,
+      },
+      Err(_) => {
+        println!("c All solutions tested");
+        return SolveResult::Unsatisfiable;
+      }
+    }
   }
 
   fn get_cnf(&self) -> &parser::CNF {
@@ -20,10 +37,17 @@ impl Solver for CombinationalSolver {
 }
 
 impl CombinationalSolver {
-  pub fn new(cnf: parser::CNF) -> CombinationalSolver {
+  pub fn new(cnf: parser::CNF, verbose: bool) -> CombinationalSolver {
     CombinationalSolver {
       counter: 0,
       cnf: cnf,
+      verbose: verbose,
+    }
+  }
+
+  fn print(&self, msg: String) {
+    if self.verbose {
+      println!("{}", msg);
     }
   }
 
@@ -47,8 +71,14 @@ impl CombinationalSolver {
     //
     // return Unsatisfiable if loop ended without a solution
 
+    self.counter += 1;
+
     if clause_index >= self.cnf.clauses.len() {
-      return Ok(SolveResult::Unsatisfiable);
+      if self.satisfies(&variables) {
+        return Ok(SolveResult::Satisfiable(variables.to_vec()));
+      } else {
+        return Ok(SolveResult::Unsatisfiable);
+      }
     }
 
     // Find new variables
@@ -61,10 +91,10 @@ impl CombinationalSolver {
       }
     }
 
-    println!(
+    self.print(format!(
       "\nc Found new variables: {:?} for clause: {:?}",
-      new_variables, clause
-    );
+      new_variables, clause,
+    ));
 
     let mut new_combinations = Self::all_combinations(new_variables.to_vec());
 
@@ -72,72 +102,69 @@ impl CombinationalSolver {
       new_combinations.remove(new_combinations.len() - 1);
     }
 
-    if new_combinations.first().unwrap().len() == 0 {
-      new_combinations = vec![variables.to_vec()];
-    }
-
     let mut overlaps = new_combinations.to_vec();
 
     let mut combined_variables = variables.to_vec();
     combined_variables.append(&mut new_variables.to_vec());
-    let combined_combinations = Self::all_combinations(combined_variables.to_vec());
 
     for ref mut global_combination in new_combinations.to_vec() {
-      let mut found_index: Option<usize> = None;
+      if global_combination.len() > 0 {
+        let mut found_index: Option<usize> = None;
 
-      // Find overlaps and global_combination
-      for (i, overlap) in (&overlaps).iter().enumerate() {
-        let found = overlap
-          .iter()
-          .find(|x| global_combination.iter().find(|y| x == y).is_some())
-          .is_some();
+        // Find overlaps and global_combination
+        for (i, overlap) in (&overlaps).iter().enumerate() {
+          let found = overlap
+            .iter()
+            .find(|x| global_combination.iter().find(|y| x == y).is_some())
+            .is_some();
 
-        if found {
-          found_index = Some(i);
-          break;
+          if found {
+            found_index = Some(i);
+            break;
+          }
         }
+
+        match found_index {
+          Some(i) => {
+            self.print(format!(
+              "Removing from overlap as about to test: {:?}",
+              global_combination
+            ));
+            overlaps.remove(i);
+
+            self.print(format!("New overlap: {:?}", overlaps));
+          }
+          None => {
+            self.print(format!(
+              "Skipping as it wasn't found in overlaps: {:?}",
+              global_combination
+            ));
+
+            continue;
+          }
+        };
       }
-
-      match found_index {
-        Some(i) => {
-          println!(
-            "Removing from overlap as about to test: {:?}",
-            global_combination
-          );
-          overlaps.remove(i);
-
-          println!("New overlap: {:?}", overlaps);
-        }
-        None => {
-          println!(
-            "Skipping as it wasn't found in overlaps: {:?}",
-            global_combination
-          );
-
-          continue;
-        }
-      };
 
       global_combination.append(&mut variables.to_vec());
 
       if Self::satisfies_clause(&clause, &global_combination) {
-        println!(
+        self.print(format!(
           "Found partial combination: {:?} to clause: {:?}",
           global_combination, clause
-        );
+        ));
         let next = self.solve_combinaitonal(clause_index + 1, &combined_variables);
         match next {
           Ok(_) => return next,
           Err(combination) => {
-            println!(
+            self.print(format!(
               "Found partial contradiction with {:?} at clause: {:?}",
               combination, clause
-            );
+            ));
             // Find overlap
             let mut remaining_overlaps = vec![];
             let mut found_combination = false;
 
-            println!("Overlaps: {:?}", overlaps);
+            self.print(format!("Overlaps: {:?}", overlaps));
 
             for potential_overlap in overlaps {
               let found = potential_overlap
@@ -149,7 +176,10 @@ impl CombinationalSolver {
                 let mut overlap_combination = potential_overlap;
                 overlap_combination.append(&mut variables.to_vec());
 
-                println!("Trying overlap combination: {:?}", overlap_combination);
+                self.print(format!(
+                  "Trying overlap combination: {:?}",
+                  overlap_combination
+                ));
                 let overlap_try = self.solve_combinaitonal(clause_index + 1, &overlap_combination);
 
                 if overlap_try.is_ok() {
@@ -161,7 +191,9 @@ impl CombinationalSolver {
             }
 
             if !found_combination {
-              println!("Did not find overlap combination, moving up a clause");
+              self.print(format!(
+                "Did not find overlap combination, moving up a clause"
+              ));
               return Err(combination);
             }
 
@@ -171,10 +203,10 @@ impl CombinationalSolver {
       }
     }
 
-    println!(
+    self.print(format!(
       "No solution: {:?} for clause: {:?}",
       combined_variables, clause
-    );
+    ));
     return Err(clause.to_vec());
   }
 

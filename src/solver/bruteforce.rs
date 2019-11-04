@@ -32,7 +32,7 @@ impl BruteforceSolver {
   }
 
   fn condition_solve(&mut self, variables: &Vec<i64>, proceed: bool) -> SolveResult {
-    if self.counter % 1000 == 0 && self.counter > 0 {
+    if self.counter % 100000 == 0 && self.counter > 0 {
       println!("c Testing variables: {:?}", variables);
     }
 
